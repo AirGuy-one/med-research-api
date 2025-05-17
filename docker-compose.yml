@@ -1,0 +1,29 @@
+services:
+  app:
+    build: .
+    container_name: med-api
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: [ "python", "main.py" ]
+
+  db:
+    image: postgres:15
+    container_name: med-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: medresearch
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

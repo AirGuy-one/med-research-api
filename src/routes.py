@@ -3,60 +3,60 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from src import models, schemas
-from src.database import SessionLocal
+from src import schemas
+from src.database import get_db
+from src.repositories import (
+    create_study,
+    create_participant,
+    create_measurement,
+    get_measurements_by_participant,
+    get_measurements_by_study,
+)
 
 router = APIRouter()
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 @router.post("/studies/", response_model=schemas.StudyOut)
-def create_study(study: schemas.StudyCreate, db: Session = Depends(get_db)):
-    db_study = models.Study(**study.dict())
-    db.add(db_study)
-    db.commit()
-    db.refresh(db_study)
-    return db_study
+def api_create_study(
+    study: schemas.StudyCreate,
+    db: Session = Depends(get_db),
+):
+    return create_study(db, study)
 
 
 @router.post("/participants/", response_model=schemas.ParticipantOut)
-def create_participant(p: schemas.ParticipantCreate, db: Session = Depends(get_db)):
-    db_p = models.Participant(**p.dict())
-    db.add(db_p)
-    db.commit()
-    db.refresh(db_p)
-    return db_p
+def api_create_participant(
+    participant: schemas.ParticipantCreate,
+    db: Session = Depends(get_db),
+):
+    return create_participant(db, participant)
 
 
 @router.post("/measurements/", response_model=schemas.MeasurementOut)
-def create_measurement(m: schemas.MeasurementCreate, db: Session = Depends(get_db)):
-    db_m = models.Measurement(**m.dict())
-    db.add(db_m)
-    db.commit()
-    db.refresh(db_m)
-    return db_m
+def api_create_measurement(
+    measurement: schemas.MeasurementCreate,
+    db: Session = Depends(get_db),
+):
+    return create_measurement(db, measurement)
 
 
-@router.get("/participants/{participant_id}/measurements", response_model=list[schemas.MeasurementOut])
-def get_measurements_by_participant(participant_id: UUID, db: Session = Depends(get_db)):
-    study_participants = db.query(models.StudyParticipant).filter_by(participant_id=participant_id).all()
-    measurements = []
-    for sp in study_participants:
-        measurements += db.query(models.Measurement).filter_by(study_participant_id=sp.id).all()
-    return measurements
+@router.get(
+    "/participants/{participant_id}/measurements",
+    response_model=list[schemas.MeasurementOut],
+)
+def api_get_measurements_by_participant(
+    participant_id: UUID,
+    db: Session = Depends(get_db),
+):
+    return get_measurements_by_participant(db, participant_id)
 
 
-@router.get("/studies/{study_id}/measurements", response_model=list[schemas.MeasurementOut])
-def get_measurements_by_study(study_id: UUID, db: Session = Depends(get_db)):
-    study_participants = db.query(models.StudyParticipant).filter_by(study_id=study_id).all()
-    measurements = []
-    for sp in study_participants:
-        measurements += db.query(models.Measurement).filter_by(study_participant_id=sp.id).all()
-    return measurements
+@router.get(
+    "/studies/{study_id}/measurements",
+    response_model=list[schemas.MeasurementOut],
+)
+def api_get_measurements_by_study(
+    study_id: UUID,
+    db: Session = Depends(get_db),
+):
+    return get_measurements_by_study(db, study_id)
